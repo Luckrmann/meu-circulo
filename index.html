@@ -30,7 +30,7 @@ dialog{border:1px solid #31506d;border-radius:17px;background:#111c2a;color:var(
 <main class="app">
   <header>
     <div class="brand"><div class="logo">MC</div><div><h1>Meu Círculo</h1><div class="sub">Seu painel de datas importantes.</div></div></div>
-    <div class="cloud">☁ Preparado para sincronização</div>
+    <button class="secondary" id="settingsBtn" type="button">⚙ Configurações</button>
   </header>
   <section class="welcome">
     <div><div class="eyebrow">CENTRAL DE LEMBRETES</div><h2>Suas datas importantes.<br>Sempre no radar.</h2><p>Seus próximos momentos com quem você ama.</p></div>
@@ -53,7 +53,7 @@ dialog{border:1px solid #31506d;border-radius:17px;background:#111c2a;color:var(
     </article>
   </section>
   <div class="bottom"><button id="monthBtn">▦ Visão do mês</button><button id="allBtn">◆ Meu círculo</button></div>
-  <p class="notice">Versão inicial de interface. <strong>O cadastro em nuvem e o envio automático pelo WhatsApp serão conectados nas próximas etapas.</strong></p>
+  <p class="notice">Seus dados ficam salvos neste aparelho nesta versão. <strong>O envio automático pelo WhatsApp será ativado após a integração segura.</strong></p>
 </main>
 <dialog id="personDialog">
   <form id="personForm">
@@ -67,11 +67,28 @@ dialog{border:1px solid #31506d;border-radius:17px;background:#111c2a;color:var(
     <div class="actions"><button type="button" class="secondary" id="cancelBtn">Cancelar</button><button class="primary" type="submit">Salvar pessoa</button></div>
   </form>
 </dialog>
+<dialog id="settingsDialog">
+  <form id="settingsForm">
+    <div class="panel-head"><div><div class="eyebrow">Central de notificações</div><h3>Configurar lembretes</h3></div><button type="button" class="secondary" id="settingsClose">✕</button></div>
+    <div class="form-grid">
+      <div class="field"><label for="myWhatsapp">Seu WhatsApp para receber os lembretes</label><input id="myWhatsapp" type="tel" inputmode="tel" placeholder="Ex.: 5521999999999" required></div>
+      <div class="field"><label for="reminderWhen">Quando deseja ser avisado?</label><select id="reminderWhen"><option value="same_day">No dia do aniversário</option><option value="one_day">Um dia antes</option><option value="both">Um dia antes e no dia</option></select></div>
+      <div class="field"><label for="reminderTime">Horário preferido</label><input id="reminderTime" type="time" value="09:00" required></div>
+    </div>
+    <p class="quiet" style="line-height:1.55;margin:0 0 16px">Este número é o seu, não o da pessoa aniversariante. Nesta etapa, as preferências ficam salvas neste aparelho. O envio pelo WhatsApp ainda não está ativo; será ligado depois por uma integração segura.</p>
+    <div class="actions"><button type="button" class="secondary" id="settingsCancel">Cancelar</button><button class="primary" type="submit">Salvar configurações</button></div>
+  </form>
+</dialog>
 <script>
 const dialog=document.querySelector('#personDialog'), form=document.querySelector('#personForm');
-let people=[];
+const settingsDialog=document.querySelector('#settingsDialog'), settingsForm=document.querySelector('#settingsForm');
+let people=JSON.parse(localStorage.getItem('mc_people')||'[]');
+let settings=JSON.parse(localStorage.getItem('mc_settings')||'{"whatsapp":"","when":"same_day","time":"09:00"}');
 const $=id=>document.getElementById(id);
 $('addBtn').onclick=()=>dialog.showModal();
+$('settingsBtn').onclick=()=>{ $('myWhatsapp').value=settings.whatsapp||''; $('reminderWhen').value=settings.when||'same_day'; $('reminderTime').value=settings.time||'09:00'; settingsDialog.showModal(); };
+$('settingsClose').onclick=$('settingsCancel').onclick=()=>settingsDialog.close();
+settingsForm.onsubmit=e=>{e.preventDefault();settings={whatsapp:$('myWhatsapp').value.trim(),when:$('reminderWhen').value,time:$('reminderTime').value};localStorage.setItem('mc_settings',JSON.stringify(settings));settingsDialog.close();alert('Configurações salvas neste aparelho. O envio automático será ativado na próxima etapa.');};
 $('closeBtn').onclick=$('cancelBtn').onclick=()=>dialog.close();
 function nextDate(iso){
   const [y,m,d]=iso.split('-').map(Number), now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
@@ -93,7 +110,7 @@ function render(){
   }else{$('featuredName').textContent='Nenhum aniversário cadastrado';$('featuredDate').textContent='Cadastre um aniversário para começar';$('featuredCount').textContent='Adicione pessoas para começar';$('peopleList').innerHTML='<div class="empty">Ainda não há aniversários cadastrados.<br>Adicione a primeira pessoa do seu círculo. 💜</div>'}
 }
 function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-form.onsubmit=e=>{e.preventDefault();people.push({name:$('name').value.trim(),birth:$('birth').value,phone:$('phone').value.trim(),relation:$('relation').value});render();form.reset();dialog.close()};
+form.onsubmit=e=>{e.preventDefault();people.push({name:$('name').value.trim(),birth:$('birth').value,phone:$('phone').value.trim(),relation:$('relation').value});localStorage.setItem('mc_people',JSON.stringify(people));render();form.reset();dialog.close()};
 $('monthBtn').onclick=()=>alert('A visão mensal será adicionada na próxima etapa.');
 $('allBtn').onclick=()=>alert('A lista completa e a edição de contatos serão adicionadas na próxima etapa.');
 if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
